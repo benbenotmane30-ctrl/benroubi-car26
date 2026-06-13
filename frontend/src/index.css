@@ -1,0 +1,9 @@
+/**
+ * index.css — Point d'entrée des styles globaux.
+ *
+ * On utilise UNIQUEMENT le CSS legacy validé (extrait pixel-perfect de
+ * legacy/location-voitures.html). Pas de Tailwind, pas de réinvention :
+ * on respecte exactement le design approuvé par l'utilisateur.
+ */
+
+@import './styles/legacy.css';

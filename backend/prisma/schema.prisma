@@ -1,0 +1,239 @@
+// ════════════════════════════════════════════════════════════
+//  Benroubi Car — Schéma de base de données Prisma
+// ════════════════════════════════════════════════════════════
+//
+//  Convention de nommage :
+//  - Modèles Prisma : PascalCase (Car, Booking, AdminUser)
+//  - Colonnes SQL  : snake_case   (price_high, created_at)
+//  - Champs TypeScript : camelCase (priceHigh, createdAt)
+//
+//  Documentation : https://www.prisma.io/docs/concepts/components/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ──────────────────────────────────────────────
+//  CAR — Une voiture du catalogue
+// ──────────────────────────────────────────────
+model Car {
+  id          Int      @id @default(autoincrement())
+
+  // Identité
+  name        String   // "Peugeot 208 Hybrid" — affiché au client
+  marque      String   // "Peugeot"
+  modele      String   // "208 Hybrid"
+  annee       String?  // "2023" (optionnel)
+  matricule   String?  @unique // Plaque d'immatriculation (optionnel)
+
+  // Classification
+  category    String   // "citadine" | "berline" | "suv" | "utilitaire" | "premium"
+  badge       String?  // "Citadine", "SUV Premium"... (libellé d'affichage)
+
+  // Caractéristiques techniques
+  carburant   String   // "Essence" | "Diesel" | "Hybride" | "Électrique" | "GPL"
+  boite       String   // "Manuelle" | "Automatique"
+  places      Int      @default(5)
+
+  // Tarifs saisonniers (en MAD)
+  prixHaut    Int      @map("prix_haut")
+  prixBas     Int      @map("prix_bas")
+
+  // Contenu marketing
+  description String?  @db.Text @map("description")
+  photos      String[] @default([]) // URLs ou paths relatifs (les data-URLs base64 sont en localStorage)
+
+  // Disponibilité
+  dispo       Boolean  @default(true)
+
+  // Réservations associées
+  bookings    Booking[]
+
+  // Échéances administratives (Phase 7.4 / 7.5)
+  insurances     Insurance[]
+  visites        VisiteTechnique[]
+
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  @@map("cars")
+  @@index([category])
+  @@index([dispo])
+}
+
+// ──────────────────────────────────────────────
+//  BOOKING — Une réservation client
+// ──────────────────────────────────────────────
+model Booking {
+  id            Int           @id @default(autoincrement())
+
+  // Voiture réservée
+  car           Car           @relation(fields: [carId], references: [id])
+  carId         Int           @map("car_id")
+
+  // Client
+  customerFirstName String    @map("customer_first_name")
+  customerLastName  String    @map("customer_last_name")
+  customerEmail     String    @map("customer_email")
+  customerPhone     String    @map("customer_phone")
+
+  // Période
+  startDate     DateTime      @map("start_date") @db.Date
+  endDate       DateTime      @map("end_date")   @db.Date
+
+  // Détails complémentaires
+  pickupPlace   String?       @map("pickup_place")
+  notes         String?       @db.Text
+  totalMad      Int?          @map("total_mad")
+
+  // Statut
+  status        BookingStatus @default(PENDING)
+
+  // Timestamps
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt      @map("updated_at")
+
+  @@map("bookings")
+  @@index([carId, startDate, endDate])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+//  ADMIN USER — Utilisateurs admin (Super Admin + Admin)
+// ──────────────────────────────────────────────
+model AdminUser {
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  role            Role      @default(ADMIN)
+  active          Boolean   @default(true)
+
+  // Notifications WhatsApp (CallMeBot)
+  phone           String?   // Format international, ex: +212662114321
+  whatsappApiKey  String?   @map("whatsapp_api_key")  // Clé API CallMeBot personnelle
+
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt      @map("updated_at")
+
+  // Journal d'audit (Phase 7.3)
+  auditLogs    AuditLog[]
+
+  @@map("admin_users")
+}
+
+// ──────────────────────────────────────────────
+//  INSURANCE — Police d'assurance d'une voiture
+// ──────────────────────────────────────────────
+// Saisie LIBRE : matricule/marque/modele sont stockés directement (pas besoin
+// que la voiture existe dans la table Car). Le lien carId est optionnel.
+model Insurance {
+  id            Int      @id @default(autoincrement())
+
+  // Saisie libre du véhicule (toujours présent)
+  matricule     String
+  marque        String
+  modele        String
+
+  // Lien optionnel vers la table Car (pour rapprochement futur)
+  car           Car?     @relation(fields: [carId], references: [id], onDelete: SetNull)
+  carId         Int?     @map("car_id")
+
+  compagnie     String   // ex: "AXA Maroc", "Wafa Assurance"
+  dateDebut     DateTime @map("date_debut") @db.Date
+  dateFin       DateTime @map("date_fin")   @db.Date
+  montantMad    Int?     @map("montant_mad")
+  notes         String?  @db.Text
+
+  // Notification 7 jours avant (Phase 7.6) — empêche les doublons d'alerte
+  alertSentAt   DateTime? @map("alert_sent_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt      @map("updated_at")
+
+  @@map("insurances")
+  @@index([carId])
+  @@index([matricule])
+  @@index([dateFin])
+}
+
+// ──────────────────────────────────────────────
+//  VISITE TECHNIQUE — Contrôle technique d'une voiture
+// ──────────────────────────────────────────────
+model VisiteTechnique {
+  id            Int      @id @default(autoincrement())
+
+  // Saisie libre du véhicule
+  matricule     String
+  marque        String
+  modele        String
+
+  // Lien optionnel vers la table Car
+  car           Car?     @relation(fields: [carId], references: [id], onDelete: SetNull)
+  carId         Int?     @map("car_id")
+
+  centre        String   // ex: "Norisko Oujda", "DEKRA Maroc"
+  dateVisite    DateTime @map("date_visite")  @db.Date
+  dateExpiration DateTime @map("date_expiration") @db.Date
+  resultat      String?  // "Favorable", "Défavorable", "Contre-visite"
+  notes         String?  @db.Text
+
+  // Notification 7 jours avant (Phase 7.6)
+  alertSentAt   DateTime? @map("alert_sent_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt      @map("updated_at")
+
+  @@map("visites_techniques")
+  @@index([carId])
+  @@index([matricule])
+  @@index([dateExpiration])
+}
+
+// ──────────────────────────────────────────────
+//  AUDIT LOG — Journal des actions (Super Admin)
+// ──────────────────────────────────────────────
+// userId nullable : permet de tracer les tentatives de login sur un username inexistant
+// ou les actions système (cron, seed, etc.).
+model AuditLog {
+  id        Int        @id @default(autoincrement())
+  user      AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?       @map("user_id")
+  username  String?    // Capture du username au moment de l'action (subsiste si user supprimé)
+  action    String     // ex: "car.replaceAll", "user.create", "auth.login_failed"
+  entity    String?    // ex: "Car", "AdminUser"
+  entityId  Int?       @map("entity_id")
+  details   String?    @db.Text  // JSON sérialisé des détails
+  ipAddress String?    @map("ip_address")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────
+//  ENUMS
+// ──────────────────────────────────────────────
+enum BookingStatus {
+  PENDING      // En attente de confirmation
+  CONFIRMED    // Confirmée par l'agence
+  CANCELLED    // Annulée
+  COMPLETED    // Location terminée
+}
+
+enum Role {
+  SUPER_ADMIN  // Tous les droits + gestion comptes + audit
+  ADMIN        // Gestion voitures + réservations
+}

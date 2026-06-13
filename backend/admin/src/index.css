@@ -1,0 +1,6 @@
+/**
+ * index.css — Point d'entrée des styles globaux de l'admin.
+ * Réutilise le CSS extrait de legacy/admin-benroubi.html (pixel-perfect).
+ */
+
+@import './styles/admin-legacy.css';

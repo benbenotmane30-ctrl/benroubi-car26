@@ -1,0 +1,54 @@
+# ─── Node ───────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+.pnp.*
+
+# ─── Build artifacts ────────────────────────
+dist/
+build/
+.next/
+out/
+.cache/
+
+# ─── Env / Secrets ──────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ─── Editors ────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ─── Logs ───────────────────────────────────
+logs/
+*.log
+
+# ─── OS ─────────────────────────────────────
+Thumbs.db
+desktop.ini
+
+# ─── TypeScript ─────────────────────────────
+*.tsbuildinfo
+
+# ─── Prisma ─────────────────────────────────
+backend/prisma/dev.db
+backend/prisma/migrations/dev/
+
+# ─── Coverage / tests ───────────────────────
+coverage/
+.nyc_output/
+
+# ─── Misc ───────────────────────────────────
+.tmp/
+tmp/
