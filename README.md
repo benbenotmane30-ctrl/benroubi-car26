@@ -184,7 +184,7 @@ cd admin && npm run dev
 
 ## 🎓 Contexte académique
 
-Ce projet est réalisé dans le cadre d'un **projet de fin d'études**. Il vise à démontrer la maîtrise de :
+Ce projet est réalisé dans le cadre d'un **stage**. Il vise à démontrer la maîtrise de :
 
 - L'architecture en couches (présentation / métier / données)
 - Le développement full-stack moderne (React + Node.js + PostgreSQL)
