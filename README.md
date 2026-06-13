@@ -195,8 +195,5 @@ Ce projet est réalisé dans le cadre d'un **stage**. Il vise à démontrer la m
 
 ## 👨‍💻 Auteur
 
-**Benroubi Car** — Étudiant en fin d'études, Oujda, Maroc.
+**BENDALI Otmaner** — Étudiant en 3éme année Bachelor **EEMI**, Lyon, France .
 
-## 📄 Licence
-
-ISC — Usage académique et professionnel.
