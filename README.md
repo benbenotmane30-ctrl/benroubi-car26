@@ -62,7 +62,6 @@ benroubi-car/
 ├── frontend/             # Site public React + Vite + Tailwind
 ├── admin/                # Dashboard admin React + Vite + Tailwind
 ├── docs/                 # Documentation technique (UML, MCD, API)
-├── legacy/               # Ancienne version (vanilla HTML) archivée
 └── README.md             # Ce fichier
 ```
 

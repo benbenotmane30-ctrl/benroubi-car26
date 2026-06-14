@@ -110,17 +110,6 @@ PostgreSQL
 
 ---
 
-### 📁 `legacy/` — Anciennes versions archivées
-
-**Rôle** : Conservation des prototypes HTML/CSS/JS pré-refonte React. Sert de référence visuelle (palette, composants) mais n'est pas déployé.
-
-**Contenu** :
-- `location-voitures.html` — Site public original (1 fichier HTML monolithique)
-- `admin-benroubi.html` — Premier prototype admin
-- Server.js Node de l'ancien backend (en mémoire / Upstash Redis)
-
----
-
 ## 3. Stack technique complète
 
 | Couche | Technologie | Version | Rôle |
