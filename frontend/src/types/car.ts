@@ -44,6 +44,7 @@ export interface BookingFormData {
   debut: string;
   fin: string;
   lieu: string;
+  lieu_retour: string;
   notes?: string;
   saison?: string;
   total?: string;

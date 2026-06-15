@@ -90,6 +90,7 @@ model Booking {
 
   // Détails complémentaires
   pickupPlace   String?       @map("pickup_place")
+  pickupReturn  String?       @map("pickup_return")
   notes         String?       @db.Text
   totalMad      Int?          @map("total_mad")
 

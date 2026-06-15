@@ -24,8 +24,9 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
   const saison  = asTrimmedString(b.saison);
   const total   = asTrimmedString(b.total);
   const jours   = asTrimmedString(b.jours);
-  const lieu    = asTrimmedString(b.lieu);
-  const notes   = asTrimmedString(b.notes);
+  const lieu        = asTrimmedString(b.lieu);
+  const lieuRetour  = asTrimmedString(b.lieu_retour);
+  const notes       = asTrimmedString(b.notes);
 
   // Validation
   if (!prenom || !nom) {
@@ -71,7 +72,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     }
 
     // ─── Email admin (avec pièces jointes si possible) ─
-    const adminParams = { vehicle, prenom, nom, email, tel, debut, fin, saison, total, jours, lieu, notes };
+    const adminParams = { vehicle, prenom, nom, email, tel, debut, fin, saison, total, jours, lieu, lieuRetour, notes };
     try {
       await sendEmail({
         to: env.DEST_EMAIL,

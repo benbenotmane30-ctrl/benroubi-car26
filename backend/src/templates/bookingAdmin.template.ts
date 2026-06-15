@@ -15,6 +15,7 @@ interface Params {
   total?: string;
   jours?: string;
   lieu?: string;
+  lieuRetour?: string;
   notes?: string;
 }
 
@@ -64,8 +65,9 @@ export function bookingAdminTemplate(p: Params): string {
       <tr><td style="color:#888;">Date fin</td><td style="font-weight:bold;">${p.fin}</td></tr>
       ${p.jours  ? `<tr style="background:#f9f9f9;"><td style="color:#888;">Durée</td><td>${p.jours} jour(s)</td></tr>` : ''}
       ${p.saison ? `<tr><td style="color:#888;">Saison</td><td>${p.saison}</td></tr>` : ''}
-      ${p.lieu   ? `<tr style="background:#f9f9f9;"><td style="color:#888;">📍 Lieu</td><td style="font-weight:bold;">${p.lieu}</td></tr>` : ''}
-      ${p.total  ? `<tr><td style="color:#888;">Total estimé</td>
+      ${p.lieu   ? `<tr style="background:#f9f9f9;"><td style="color:#888;">📍 Prise en charge</td><td style="font-weight:bold;">${p.lieu}</td></tr>` : ''}
+      ${p.lieuRetour ? `<tr><td style="color:#888;">🔁 Retour</td><td style="font-weight:bold;">${p.lieuRetour === p.lieu ? `${p.lieuRetour} <span style="color:#888;font-weight:normal;font-size:12px;">(identique)</span>` : p.lieuRetour}</td></tr>` : ''}
+      ${p.total  ? `<tr style="background:#f9f9f9;"><td style="color:#888;">Total estimé</td>
         <td style="font-weight:bold;font-size:18px;color:#C9A96E;">${p.total} MAD</td></tr>` : ''}
     </table>
 

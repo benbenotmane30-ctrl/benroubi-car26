@@ -61,6 +61,7 @@ export interface BookingPayload {
   total?: string;
   jours?: string;
   lieu?: string;
+  lieuRetour?: string;
   notes?: string;
 }
 

@@ -9,10 +9,6 @@ interface Props { car: Car | null; onClose: () => void; }
 type Pickup = 'Agence Oujda' | 'Aéroport Oujda-Angad' | 'Hôtel / Adresse';
 type State = 'idle' | 'sending' | 'success' | 'error';
 
-/**
- * BookingModal — Reproduction exacte du design legacy (.modal-overlay + .luxe-*).
- * Toutes les classes CSS utilisées sont celles de styles/legacy.css.
- */
 export function BookingModal({ car, onClose }: Props) {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
@@ -21,6 +17,8 @@ export function BookingModal({ car, onClose }: Props) {
   const [debut, setDebut] = useState('');
   const [fin, setFin] = useState('');
   const [lieu, setLieu] = useState<Pickup | ''>('');
+  const [lieuRetour, setLieuRetour] = useState<Pickup | ''>('');
+  const [retourIdentique, setRetourIdentique] = useState(true);
   const [notes, setNotes] = useState('');
   const [recto, setRecto] = useState<File | null>(null);
   const [verso, setVerso] = useState<File | null>(null);
@@ -30,7 +28,9 @@ export function BookingModal({ car, onClose }: Props) {
   useEffect(() => {
     if (!car) return;
     setPrenom(''); setNom(''); setEmail(''); setTel('');
-    setDebut(''); setFin(''); setLieu(''); setNotes('');
+    setDebut(''); setFin('');
+    setLieu(''); setLieuRetour(''); setRetourIdentique(true);
+    setNotes('');
     setRecto(null); setVerso(null);
     setState('idle'); setErrorMsg('');
   }, [car]);
@@ -54,16 +54,34 @@ export function BookingModal({ car, onClose }: Props) {
     (which === 'recto' ? setRecto : setVerso)(f);
   };
 
+  const effectiveReturn: string = retourIdentique ? lieu : lieuRetour;
+
+  const validateForm = (): string | null => {
+    if (!debut || !fin)                            return 'Renseignez les dates de début et de fin.';
+    if (!prenom.trim() || !nom.trim())             return 'Renseignez votre prénom et votre nom.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'E-mail invalide.';
+    if (!tel.trim())                               return 'Numéro de téléphone requis.';
+    if (!lieu)                                     return 'Choisissez un lieu de prise en charge.';
+    if (!retourIdentique && !lieuRetour)           return 'Choisissez un lieu de retour ou cochez « identique au départ ».';
+    if (!recto || !verso)                          return 'Les photos du permis (recto et verso) sont obligatoires.';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lieu) { alert('Choisissez un lieu de prise en charge.'); return; }
+    const validationError = validateForm();
+    if (validationError) { setErrorMsg(validationError); setState('error'); return; }
+
     setState('sending'); setErrorMsg('');
     try {
       const rectoFinal = recto ? await compressImage(recto) : undefined;
       const versoFinal = verso ? await compressImage(verso) : undefined;
       const r = await submitBooking({
         vehicle: car.name,
-        prenom, nom, email, tel, debut, fin, lieu, notes,
+        prenom, nom, email, tel, debut, fin,
+        lieu,
+        lieu_retour: effectiveReturn,
+        notes,
         saison: seasonLabel,
         total:  breakdown ? String(breakdown.total) : '',
         jours:  breakdown ? `${breakdown.totalJours} jour(s)` : '',
@@ -72,67 +90,101 @@ export function BookingModal({ car, onClose }: Props) {
       });
       if (!r.success) throw new Error(r.message ?? 'Erreur serveur');
       setState('success');
-    } catch (err) { setErrorMsg((err as Error).message); setState('error'); }
+    } catch (err) {
+      // Extrait le vrai message du backend si dispo (axios), sinon fallback
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const backendMsg = axiosErr.response?.data?.message;
+      setErrorMsg(backendMsg || axiosErr.message || 'Erreur serveur, réessayez.');
+      setState('error');
+    }
   };
 
   return (
-    <div className="modal-overlay open" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-wrap">
-        <div className="modal" onClick={e => e.stopPropagation()}>
-          <button className="modal-close" onClick={onClose} aria-label="Fermer">✕</button>
+    <div className="bm-overlay open" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="bm-wrap">
+        <div className="bm-modal" onClick={e => e.stopPropagation()}>
+          <button className="bm-close" onClick={onClose} aria-label="Fermer">✕</button>
 
-          {/* Image */}
-          <div className="modal-gallery">
-            {car.photos?.[0] ? (
-              <img src={car.photos[0]} alt={car.name} />
-            ) : (
-              <div className="gallery-ph">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span>Aucune photo</span>
+          {/* ═════ COLONNE GAUCHE : Showcase véhicule ═════ */}
+          <aside className="bm-showcase">
+            <div className="bm-showcase-sticky">
+              <div className="bm-image">
+                <span className="bm-cat-badge">{car.badge ?? car.category}</span>
+                {car.photos?.[0] ? (
+                  <img src={car.photos[0]} alt={car.name} />
+                ) : (
+                  <div className="bm-image-ph">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span>Aucune photo</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="modal-body">
-            <div className="section-label">{car.badge ?? car.category}</div>
-            <div className="modal-car-name">{car.name}</div>
-            {car.desc && <p style={{ color: 'var(--gris)', fontSize: '.86rem', marginBottom: '.6rem' }}>{car.desc}</p>}
+              <div className="bm-identity">
+                <div className="bm-eyebrow">Notre flotte</div>
+                <h2 className="bm-name">{car.name}</h2>
+                {car.desc && <p className="bm-desc">{car.desc}</p>}
 
-            {/* Prix saison */}
-            <div className="modal-price-grid">
-              <div className="modal-price-box mpb-haut">
-                <div className="mpb-season">☀️ Haute saison</div>
-                <div className="mpb-val">{car.prix_haut}</div>
-                <div className="mpb-unit">MAD / jour</div>
-              </div>
-              <div className="modal-price-box mpb-bas">
-                <div className="mpb-season">🍂 Basse saison</div>
-                <div className="mpb-val">{car.prix_bas}</div>
-                <div className="mpb-unit">MAD / jour</div>
+                <div className="bm-specs">
+                  <div className="bm-spec">
+                    <svg className="bm-spec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M3 22h12V2H3v20zM15 11l4-3v11l-4 3"/>
+                    </svg>
+                    <span className="bm-spec-val">{car.carburant}</span>
+                    <span className="bm-spec-label">Carburant</span>
+                  </div>
+                  <div className="bm-spec">
+                    <svg className="bm-spec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                    <span className="bm-spec-val">{car.boite}</span>
+                    <span className="bm-spec-label">Boîte</span>
+                  </div>
+                  <div className="bm-spec">
+                    <svg className="bm-spec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    <span className="bm-spec-val">{car.places} places</span>
+                    <span className="bm-spec-label">Capacité</span>
+                  </div>
+                </div>
+
+                <div className="bm-prices">
+                  <div className="bm-price bm-price-haut">
+                    <div className="bm-price-head">
+                      <span className="bm-price-icon">☀️</span>
+                      <span>Haute saison</span>
+                    </div>
+                    <div className="bm-price-val">
+                      {car.prix_haut}<span className="bm-price-unit">MAD/j</span>
+                    </div>
+                  </div>
+                  <div className="bm-price bm-price-bas">
+                    <div className="bm-price-head">
+                      <span className="bm-price-icon">🍂</span>
+                      <span>Basse saison</span>
+                    </div>
+                    <div className="bm-price-val">
+                      {car.prix_bas}<span className="bm-price-unit">MAD/j</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          </aside>
 
-            {/* Specs */}
-            <div className="modal-specs-grid">
-              <div className="modal-spec">
-                <span className="modal-spec-val">{car.carburant}</span>
-                <span className="modal-spec-label">Carburant</span>
-              </div>
-              <div className="modal-spec">
-                <span className="modal-spec-val">{car.boite}</span>
-                <span className="modal-spec-label">Boîte</span>
-              </div>
-              <div className="modal-spec">
-                <span className="modal-spec-val">{car.places} places</span>
-                <span className="modal-spec-label">Capacité</span>
-              </div>
-            </div>
-
-            {/* Formulaire luxe */}
+          {/* ═════ COLONNE DROITE : Formulaire ═════ */}
+          <section className="bm-form-side">
             {state === 'success' ? (
-              <div className="luxe-success show">
-                <div className="luxe-success-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="bm-success">
+                <div className="bm-success-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
@@ -140,138 +192,170 @@ export function BookingModal({ car, onClose }: Props) {
                 <p>Merci ! Notre équipe vous contactera sous <strong>2 heures</strong> pour confirmer votre réservation.</p>
               </div>
             ) : (
-              <form className="luxe-form" onSubmit={handleSubmit} noValidate>
-                <div className="luxe-form-header">
-                  <div className="luxe-eyebrow">Réservation</div>
-                  <h3 className="luxe-title">Réservez votre <em>véhicule</em></h3>
-                  <p className="luxe-sub">Notre équipe vous recontacte sous 2 heures pour confirmer votre location.</p>
+              <form onSubmit={handleSubmit} noValidate>
+                <div className="bm-form-header">
+                  <div className="bm-form-eyebrow">Réservation</div>
+                  <h3 className="bm-form-title">Réservez votre <em>véhicule</em></h3>
+                  <p className="bm-form-sub">Notre équipe vous recontacte sous 2 heures pour confirmer.</p>
                 </div>
 
-                {/* Section I — Dates */}
-                <div className="luxe-section">
-                  <div className="luxe-section-label"><span className="num">I</span><span>Vos dates</span></div>
-                  <div className="luxe-grid">
-                    <div className="luxe-field">
+                {/* I — Dates */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">I</span><span>Vos dates</span></div>
+                  <div className="bm-grid">
+                    <div className="bm-field">
                       <input type="date" value={debut} min={today} onChange={e => setDebut(e.target.value)} placeholder=" " required />
                       <label>Date de début *</label>
                     </div>
-                    <div className="luxe-field">
+                    <div className="bm-field">
                       <input type="date" value={fin} min={debut || today} onChange={e => setFin(e.target.value)} placeholder=" " required />
                       <label>Date de fin *</label>
                     </div>
                   </div>
                 </div>
 
-                {/* Section II — Coordonnées */}
-                <div className="luxe-section">
-                  <div className="luxe-section-label"><span className="num">II</span><span>Vos coordonnées</span></div>
-                  <div className="luxe-grid">
-                    <div className="luxe-field">
+                {/* II — Coordonnées */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">II</span><span>Vos coordonnées</span></div>
+                  <div className="bm-grid">
+                    <div className="bm-field">
                       <input type="text" value={prenom} onChange={e => setPrenom(e.target.value)} placeholder=" " required />
                       <label>Prénom *</label>
                     </div>
-                    <div className="luxe-field">
+                    <div className="bm-field">
                       <input type="text" value={nom} onChange={e => setNom(e.target.value)} placeholder=" " required />
                       <label>Nom *</label>
                     </div>
-                    <div className="luxe-field">
+                    <div className="bm-field">
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder=" " required />
                       <label>E-mail *</label>
                     </div>
-                    <div className="luxe-field">
+                    <div className="bm-field">
                       <input type="tel" value={tel} onChange={e => setTel(e.target.value)} placeholder=" " required />
                       <label>Téléphone *</label>
                     </div>
                   </div>
                 </div>
 
-                {/* Section III — Lieu */}
-                <div className="luxe-section">
-                  <div className="luxe-section-label"><span className="num">III</span><span>Lieu de prise en charge</span></div>
-                  <div className="luxe-pickup">
-                    <PickupLabel
-                      title="Agence" sub="80 Bd Rahmouni, Oujda"
+                {/* III — Lieu de prise en charge */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">III</span><span>Lieu de prise en charge</span></div>
+                  <div className="bm-pickup">
+                    <PickupCard title="Agence" sub="80 Bd Rahmouni, Oujda"
                       selected={lieu === 'Agence Oujda'} onClick={() => setLieu('Agence Oujda')}
                       icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" /><path d="M9 9h.01M9 12h.01M9 15h.01M9 18h.01" /></svg>}
                     />
-                    <PickupLabel
-                      title="Aéroport" sub="Oujda-Angad (OUD)"
+                    <PickupCard title="Aéroport" sub="Oujda-Angad (OUD)"
                       selected={lieu === 'Aéroport Oujda-Angad'} onClick={() => setLieu('Aéroport Oujda-Angad')}
                       icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /></svg>}
                     />
-                    <PickupLabel
-                      title="Hôtel" sub="Livraison à votre adresse"
+                    <PickupCard title="Hôtel" sub="Livraison à votre adresse"
                       selected={lieu === 'Hôtel / Adresse'} onClick={() => setLieu('Hôtel / Adresse')}
                       icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>}
                     />
                   </div>
                 </div>
 
-                {/* Section IV — Permis */}
-                <div className="luxe-section">
-                  <div className="luxe-section-label"><span className="num">IV</span><span>Permis de conduire</span></div>
-                  <div className="luxe-permis">
-                    <PermisBox label="Recto" file={recto} onChange={handleFile('recto')} />
-                    <PermisBox label="Verso" file={verso} onChange={handleFile('verso')} />
+                {/* IV — Lieu de retour */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">IV</span><span>Lieu de retour</span></div>
+
+                  <label className={`bm-return-toggle ${retourIdentique ? 'checked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={retourIdentique}
+                      onChange={e => setRetourIdentique(e.target.checked)}
+                    />
+                    <span className="bm-toggle-box">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12" /></svg>
+                    </span>
+                    <span className="bm-toggle-text">
+                      <span className="bm-toggle-title">Retour au même endroit que le départ</span>
+                      <span className="bm-toggle-sub">Décochez si vous souhaitez rendre le véhicule ailleurs</span>
+                    </span>
+                  </label>
+
+                  {!retourIdentique && (
+                    <div className="bm-return-block">
+                      <div className="bm-pickup">
+                        <PickupCard title="Agence" sub="80 Bd Rahmouni, Oujda"
+                          selected={lieuRetour === 'Agence Oujda'} onClick={() => setLieuRetour('Agence Oujda')}
+                          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" /><path d="M9 9h.01M9 12h.01M9 15h.01M9 18h.01" /></svg>}
+                        />
+                        <PickupCard title="Aéroport" sub="Oujda-Angad (OUD)"
+                          selected={lieuRetour === 'Aéroport Oujda-Angad'} onClick={() => setLieuRetour('Aéroport Oujda-Angad')}
+                          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /></svg>}
+                        />
+                        <PickupCard title="Hôtel" sub="Récupération à votre adresse"
+                          selected={lieuRetour === 'Hôtel / Adresse'} onClick={() => setLieuRetour('Hôtel / Adresse')}
+                          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* V — Permis */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">V</span><span>Permis de conduire *</span></div>
+                  <div className="bm-permis">
+                    <PermisBox label="Recto *" file={recto} onChange={handleFile('recto')} />
+                    <PermisBox label="Verso *" file={verso} onChange={handleFile('verso')} />
                   </div>
-                  <p style={{ fontSize: '.72rem', color: 'var(--gris)', marginTop: '.6rem', fontStyle: 'italic' }}>
-                    Optionnel — vous pouvez aussi nous l'envoyer plus tard par WhatsApp.
+                  <p className="bm-permis-note">
+                    Photos obligatoires — format JPG / PNG / PDF, max 5 Mo par fichier.
                   </p>
                 </div>
 
-                {/* Section V — Notes */}
-                <div className="luxe-section">
-                  <div className="luxe-section-label"><span className="num">V</span><span>Notes &amp; demandes spéciales</span></div>
-                  <div className="luxe-field">
+                {/* VI — Notes */}
+                <div className="bm-section">
+                  <div className="bm-section-label"><span className="bm-num">VI</span><span>Notes &amp; demandes spéciales</span></div>
+                  <div className="bm-field">
                     <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder=" " />
                     <label>Siège bébé, GPS, livraison hôtel, vol d'arrivée…</label>
                   </div>
                 </div>
 
-                {/* Section VI — Récap */}
+                {/* VII — Récap */}
                 {breakdown && (
-                  <div className="luxe-section">
-                    <div className="luxe-section-label"><span className="num">VI</span><span>Récapitulatif</span></div>
-                    <div className="luxe-total">
-                      <div className="luxe-total-top">
-                        <span className="luxe-total-veh">{car.name}</span>
-                      </div>
-                      <div className="luxe-total-rows">
+                  <div className="bm-section">
+                    <div className="bm-section-label"><span className="bm-num">VII</span><span>Récapitulatif</span></div>
+                    <div className="bm-total">
+                      <div className="bm-total-veh">{car.name}</div>
+                      <div className="bm-total-rows">
                         {breakdown.joursHaut > 0 && (
-                          <div className="luxe-total-row">
+                          <div className="bm-total-row">
                             <span>☀️ Haute saison — {breakdown.joursHaut} j × {car.prix_haut} MAD</span>
                             <strong>{breakdown.montantHaut.toLocaleString('fr-FR')} MAD</strong>
                           </div>
                         )}
                         {breakdown.joursBas > 0 && (
-                          <div className="luxe-total-row">
+                          <div className="bm-total-row">
                             <span>🍂 Basse saison — {breakdown.joursBas} j × {car.prix_bas} MAD</span>
                             <strong>{breakdown.montantBas.toLocaleString('fr-FR')} MAD</strong>
                           </div>
                         )}
                       </div>
-                      <div className="luxe-total-divider"></div>
-                      <div className="luxe-total-final">
-                        <span className="luxe-total-final-label">Total estimé</span>
+                      <div className="bm-total-divider"></div>
+                      <div className="bm-total-final">
+                        <span className="bm-total-final-label">Total estimé</span>
                         <div>
-                          <span className="luxe-total-final-val">{breakdown.total.toLocaleString('fr-FR')}</span>
-                          <span className="luxe-total-final-unit">MAD</span>
+                          <span className="bm-total-final-val">{breakdown.total.toLocaleString('fr-FR')}</span>
+                          <span className="bm-total-final-unit">MAD</span>
                         </div>
                       </div>
-                      <div className="luxe-total-note">* Tarif indicatif. Prix confirmé par notre équipe sous 2h.</div>
+                      <div className="bm-total-note">* Tarif indicatif. Prix confirmé par notre équipe sous 2h.</div>
                     </div>
                   </div>
                 )}
 
                 {/* Submit */}
-                <div className="luxe-submit-area">
-                  <p className="luxe-privacy">Vos données sont traitées exclusivement par Benroubi Car (RGPD). Aucun engagement à ce stade.</p>
+                <div className="bm-submit-area">
+                  <p className="bm-privacy">Vos données sont traitées exclusivement par Benroubi Car (RGPD). Aucun engagement à ce stade.</p>
                   {state === 'error' && (
-                    <p style={{ color: '#DC2626', fontSize: '.85rem', textAlign: 'center', marginBottom: '.8rem' }}>
-                      ❌ {errorMsg || 'Erreur, réessayez.'}
-                    </p>
+                    <p className="bm-error">❌ {errorMsg || 'Erreur, réessayez.'}</p>
                   )}
-                  <button type="submit" className="luxe-submit" disabled={state === 'sending'}>
+                  <button type="submit" className="bm-submit" disabled={state === 'sending'}>
                     {state === 'sending' ? (
                       <span>Envoi en cours…</span>
                     ) : (
@@ -286,25 +370,25 @@ export function BookingModal({ car, onClose }: Props) {
                 </div>
               </form>
             )}
-          </div>
+          </section>
         </div>
       </div>
     </div>
   );
 }
 
-function PickupLabel({
+function PickupCard({
   title, sub, icon, selected, onClick,
 }: { title: string; sub: string; icon: React.ReactNode; selected: boolean; onClick: () => void }) {
   return (
-    <label className={`pickup-card ${selected ? 'selected' : ''}`} onClick={onClick}>
-      <input type="radio" name="lieu" checked={selected} onChange={onClick} />
-      <span className="pc-icon">{icon}</span>
-      <span className="pc-text">
-        <span className="pc-title">{title}</span>
-        <span className="pc-sub">{sub}</span>
+    <label className={`bm-pickup-card ${selected ? 'selected' : ''}`} onClick={onClick}>
+      <input type="radio" checked={selected} onChange={onClick} />
+      <span className="bm-pc-icon">{icon}</span>
+      <span className="bm-pc-text">
+        <span className="bm-pc-title">{title}</span>
+        <span className="bm-pc-sub">{sub}</span>
       </span>
-      <span className="pc-check">
+      <span className="bm-pc-check">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
           <polyline points="20 6 9 17 4 12" />
         </svg>
@@ -319,19 +403,19 @@ function PermisBox({
   const isPdf = file?.type === 'application/pdf';
   const isImg = file && file.type.startsWith('image/');
   const previewUrl = isImg ? URL.createObjectURL(file) : null;
-  const cls = `permis-box ${isImg ? 'has-file' : ''} ${isPdf ? 'has-pdf' : ''}`;
+  const cls = `bm-permis-box ${isImg ? 'has-file' : ''} ${isPdf ? 'has-pdf' : ''}`;
   return (
     <label className={cls}>
       <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={onChange} />
-      <svg className="pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg className="bm-pb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="3" y="6" width="18" height="13" rx="1" />
         <circle cx="8.5" cy="11.5" r="1.5" />
         <path d="M21 16l-5-5L5 19" />
       </svg>
-      <span className="pb-label">{label}</span>
-      <span className="pb-hint">JPG / PNG / PDF — max 5 Mo</span>
-      {previewUrl && <img className="permis-preview" src={previewUrl} alt={label} />}
-      {isPdf && <span className="permis-pdf-name">📄 {file.name}</span>}
+      <span className="bm-pb-label">{label}</span>
+      <span className="bm-pb-hint">JPG / PNG / PDF — max 5 Mo</span>
+      {previewUrl && <img className="bm-permis-preview" src={previewUrl} alt={label} />}
+      {isPdf && <span className="bm-permis-pdf">📄 {file.name}</span>}
     </label>
   );
 }
