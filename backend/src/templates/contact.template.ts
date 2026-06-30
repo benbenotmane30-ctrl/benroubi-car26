@@ -5,6 +5,7 @@
 interface Params {
   nom: string;
   email: string;
+  tel?: string;
   sujet?: string;
   message: string;
 }
@@ -33,7 +34,9 @@ export function contactTemplate(p: Params): string {
       <tr><td style="color:#888;width:100px;">De</td><td style="font-weight:bold;">${p.nom}</td></tr>
       <tr style="background:#f9f9f9;"><td style="color:#888;">E-mail</td>
         <td><a href="mailto:${p.email}" style="color:#C9A96E;">${p.email}</a></td></tr>
-      <tr><td style="color:#888;">Sujet</td><td style="font-weight:bold;">${p.sujet || '(aucun sujet)'}</td></tr>
+      ${p.tel ? `<tr><td style="color:#888;">Téléphone</td>
+        <td><a href="tel:${(p.tel || '').replace(/\s/g, '')}" style="color:#C9A96E;text-decoration:none;font-weight:bold;">${p.tel}</a></td></tr>
+      <tr style="background:#f9f9f9;"><td style="color:#888;">Sujet</td><td style="font-weight:bold;">${p.sujet || '(aucun sujet)'}</td></tr>` : `<tr><td style="color:#888;">Sujet</td><td style="font-weight:bold;">${p.sujet || '(aucun sujet)'}</td></tr>`}
     </table>
     <div style="margin-top:20px;padding:16px;background:#f9f9f9;border-left:3px solid #C9A96E;">
       <p style="margin:0;font-size:14px;color:#333;line-height:1.7;white-space:pre-wrap;">${p.message}</p>

@@ -56,6 +56,7 @@ export interface BookingFormData {
 export interface ContactFormData {
   nom?: string;
   email: string;
+  tel?: string;
   sujet?: string;
   message: string;
 }

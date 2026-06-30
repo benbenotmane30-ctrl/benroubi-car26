@@ -3,6 +3,8 @@ import type { Car } from '../types/car';
 import { computePrice, getSeasonLabel } from '../utils/pricing';
 import { compressImage, isAcceptableSize } from '../utils/imageCompression';
 import { submitBooking } from '../services/bookings.service';
+import { DEFAULT_COUNTRY_CODE } from '../data/countryCodes';
+import { PhoneInput } from './PhoneInput';
 
 interface Props { car: Car | null; onClose: () => void; }
 
@@ -13,7 +15,8 @@ export function BookingModal({ car, onClose }: Props) {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
-  const [tel, setTel] = useState('');
+  const [telCode, setTelCode] = useState<string>(DEFAULT_COUNTRY_CODE);
+  const [telNumber, setTelNumber] = useState('');
   const [debut, setDebut] = useState('');
   const [fin, setFin] = useState('');
   const [lieu, setLieu] = useState<Pickup | ''>('');
@@ -27,7 +30,8 @@ export function BookingModal({ car, onClose }: Props) {
 
   useEffect(() => {
     if (!car) return;
-    setPrenom(''); setNom(''); setEmail(''); setTel('');
+    setPrenom(''); setNom(''); setEmail('');
+    setTelCode(DEFAULT_COUNTRY_CODE); setTelNumber('');
     setDebut(''); setFin('');
     setLieu(''); setLieuRetour(''); setRetourIdentique(true);
     setNotes('');
@@ -55,12 +59,13 @@ export function BookingModal({ car, onClose }: Props) {
   };
 
   const effectiveReturn: string = retourIdentique ? lieu : lieuRetour;
+  const fullTel = `${telCode} ${telNumber.trim()}`;
 
   const validateForm = (): string | null => {
     if (!debut || !fin)                            return 'Renseignez les dates de début et de fin.';
     if (!prenom.trim() || !nom.trim())             return 'Renseignez votre prénom et votre nom.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'E-mail invalide.';
-    if (!tel.trim())                               return 'Numéro de téléphone requis.';
+    if (!telNumber.trim())                         return 'Numéro de téléphone requis.';
     if (!lieu)                                     return 'Choisissez un lieu de prise en charge.';
     if (!retourIdentique && !lieuRetour)           return 'Choisissez un lieu de retour ou cochez « identique au départ ».';
     if (!recto || !verso)                          return 'Les photos du permis (recto et verso) sont obligatoires.';
@@ -78,7 +83,7 @@ export function BookingModal({ car, onClose }: Props) {
       const versoFinal = verso ? await compressImage(verso) : undefined;
       const r = await submitBooking({
         vehicle: car.name,
-        prenom, nom, email, tel, debut, fin,
+        prenom, nom, email, tel: fullTel, debut, fin,
         lieu,
         lieu_retour: effectiveReturn,
         notes,
@@ -230,9 +235,16 @@ export function BookingModal({ car, onClose }: Props) {
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder=" " required />
                       <label>E-mail *</label>
                     </div>
-                    <div className="bm-field">
-                      <input type="tel" value={tel} onChange={e => setTel(e.target.value)} placeholder=" " required />
-                      <label>Téléphone *</label>
+                    <div className="bm-field bm-field-phone">
+                      <PhoneInput
+                        code={telCode}
+                        number={telNumber}
+                        onCodeChange={setTelCode}
+                        onNumberChange={setTelNumber}
+                        variant="floating"
+                        required
+                      />
+                      <span className="bm-phone-label">Téléphone *</span>
                     </div>
                   </div>
                 </div>

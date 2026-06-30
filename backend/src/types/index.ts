@@ -69,6 +69,7 @@ export interface BookingPayload {
 export interface ContactPayload {
   nom?: string;
   email: string;
+  tel?: string;
   sujet?: string;
   message: string;
 }

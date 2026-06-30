@@ -272,6 +272,15 @@
   color:var(--gold);font-weight:500;
 }
 
+/* Champ téléphone (le PhoneInput gère son propre rendu, on garde juste le label flottant doré) */
+.bm-field-phone{padding-top:.6rem}
+.bm-phone-label{
+  position:absolute;left:0;top:0;
+  font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--gold);font-weight:500;
+  pointer-events:none;
+}
+
 /* Lieux (cartes) */
 .bm-pickup{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem}
 .bm-pickup-card{

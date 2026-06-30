@@ -11,6 +11,7 @@ import { isValidEmail, asTrimmedString } from '../utils/validation.utils.js';
 export const createContact = async (req: Request, res: Response): Promise<void> => {
   const nom     = asTrimmedString(req.body?.nom);
   const email   = asTrimmedString(req.body?.email);
+  const tel     = asTrimmedString(req.body?.tel);
   const sujet   = asTrimmedString(req.body?.sujet);
   const message = asTrimmedString(req.body?.message);
 
@@ -28,7 +29,7 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
       to: env.DEST_EMAIL,
       replyTo: email,
       subject: `✉️ Contact — ${sujet || 'Message depuis le site'} — ${nom || email}`,
-      html: contactTemplate({ nom: nom || 'Anonyme', email, sujet, message }),
+      html: contactTemplate({ nom: nom || 'Anonyme', email, tel, sujet, message }),
     });
     console.log(`✅ Contact — ${nom} — ${email}`);
     res.json({ success: true, message: 'Message envoyé ! Nous vous répondrons dans les plus brefs délais.' });

@@ -1,0 +1,193 @@
+/* ════════════════════════════════════════════════════════════
+   PHONE INPUT — Sélecteur d'indicatif professionnel
+   Dropdown custom + drapeaux SVG (flagcdn.com)
+   ════════════════════════════════════════════════════════════ */
+
+.phone-input{
+  position:relative;
+  display:flex;align-items:stretch;
+  width:100%;
+  gap:0;
+}
+
+/* ── Bouton trigger ─────────────────────────────────────── */
+.phone-trigger{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.55rem .7rem;
+  background:var(--blanc);
+  border:1px solid rgba(13,13,13,.14);
+  border-right:none;
+  cursor:pointer;
+  font-family:var(--font-body);
+  font-size:.92rem;
+  color:var(--noir);
+  transition:background .2s ease,border-color .2s ease;
+  flex-shrink:0;
+  min-height:48px;
+  border-radius:3px 0 0 3px;
+}
+.phone-trigger:hover{background:rgba(201,169,110,.06)}
+.phone-trigger.open{
+  border-color:var(--gold);
+  background:rgba(201,169,110,.08);
+}
+.phone-trigger:focus-visible{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px rgba(201,169,110,.25);
+}
+
+.phone-flag{
+  width:22px;height:16px;
+  object-fit:cover;
+  border-radius:2px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.06);
+  display:block;
+  flex-shrink:0;
+}
+
+.phone-code-label{
+  font-weight:500;
+  letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
+  font-size:.88rem;
+  color:var(--noir);
+}
+
+.phone-caret{
+  color:var(--gris);
+  transition:transform .25s ease,color .25s ease;
+  flex-shrink:0;
+  margin-left:.1rem;
+}
+.phone-trigger.open .phone-caret{
+  transform:rotate(180deg);
+  color:var(--gold);
+}
+
+/* ── Input numéro ───────────────────────────────────────── */
+.phone-input .phone-number,
+.phone-input input[type="tel"]{
+  flex:1;min-width:0;
+  padding:.72rem .88rem;
+  border:1px solid rgba(13,13,13,.14);
+  background:var(--blanc);
+  color:var(--noir);
+  font-size:15px;font-family:var(--font-body);
+  outline:none;
+  transition:border-color .2s ease;
+  border-radius:0 3px 3px 0;
+}
+.phone-input .phone-number:focus,
+.phone-input input[type="tel"]:focus{border-color:var(--gold)}
+
+/* ── Dropdown ───────────────────────────────────────────── */
+.phone-dropdown{
+  position:fixed;
+  z-index:9999;
+  background:var(--blanc);
+  border:1px solid rgba(13,13,13,.12);
+  border-radius:4px;
+  box-shadow:0 16px 50px rgba(0,0,0,.25),0 0 0 1px rgba(201,169,110,.12);
+  overflow:hidden;
+  animation:phoneDropdownIn .18s ease both;
+  display:flex;flex-direction:column;
+}
+@keyframes phoneDropdownIn{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.phone-dropdown-search{
+  display:flex;align-items:center;gap:.55rem;
+  padding:.7rem .85rem;
+  border-bottom:1px solid rgba(13,13,13,.08);
+  background:var(--gris-light);
+  color:var(--gris);
+}
+.phone-dropdown-search input{
+  flex:1;min-width:0;
+  border:none;background:transparent;
+  outline:none;
+  font-family:var(--font-body);font-size:.85rem;
+  color:var(--noir);
+}
+.phone-dropdown-search input::placeholder{color:rgba(13,13,13,.4)}
+
+.phone-dropdown-list{
+  list-style:none;margin:0;padding:.3rem 0;
+  flex:1;min-height:0;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(201,169,110,.3) transparent;
+}
+.phone-dropdown-list::-webkit-scrollbar{width:6px}
+.phone-dropdown-list::-webkit-scrollbar-thumb{background:rgba(201,169,110,.3);border-radius:3px}
+
+.phone-dropdown-item{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.55rem .9rem;
+  cursor:pointer;
+  font-size:.86rem;
+  color:var(--noir);
+  border-left:3px solid transparent;
+  transition:background .15s ease,border-color .15s ease;
+}
+.phone-dropdown-item:hover{
+  background:rgba(201,169,110,.08);
+  border-left-color:rgba(201,169,110,.4);
+}
+.phone-dropdown-item.selected{
+  background:rgba(201,169,110,.12);
+  border-left-color:var(--gold);
+  font-weight:500;
+}
+.phone-dropdown-name{
+  flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.phone-dropdown-code{
+  color:var(--gris);
+  font-variant-numeric:tabular-nums;
+  font-size:.82rem;
+  font-weight:500;
+}
+.phone-dropdown-item.selected .phone-dropdown-code{color:var(--gold)}
+.phone-dropdown-empty{
+  padding:1.2rem .9rem;text-align:center;
+  color:var(--gris);font-size:.85rem;font-style:italic;
+}
+
+/* ═════════ Variantes ═════════ */
+
+/* Floating (booking modal) : champs avec label flottant doré */
+.phone-input-floating{
+  border-bottom:1px solid rgba(13,13,13,.18);
+  transition:border-color .25s ease;
+  padding-top:1.4rem;
+  padding-bottom:.4rem;
+}
+.phone-input-floating:focus-within{border-bottom-color:var(--gold)}
+.phone-input-floating .phone-trigger{
+  border:none;
+  background:transparent;
+  padding:.2rem .55rem .2rem 0;
+  min-height:auto;
+}
+.phone-input-floating .phone-trigger:hover{background:rgba(201,169,110,.06)}
+.phone-input-floating .phone-trigger.open{background:rgba(201,169,110,.08)}
+.phone-input-floating .phone-number,
+.phone-input-floating input[type="tel"]{
+  border:none;background:transparent;
+  padding:.2rem .5rem;
+  border-radius:0;
+}
+.phone-input-floating .phone-number:focus,
+.phone-input-floating input[type="tel"]:focus{outline:none}
+
+/* Classic (contact form) : champs avec bordure standard */
+.phone-input-classic{}
+
+/* Responsive */
+@media (max-width:640px){
+  .phone-trigger{padding:.55rem .55rem;gap:.4rem}
+  .phone-code-label{font-size:.82rem}
+}

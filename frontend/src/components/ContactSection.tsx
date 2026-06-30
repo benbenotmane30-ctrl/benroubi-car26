@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { submitContact } from '../services/bookings.service';
+import { DEFAULT_COUNTRY_CODE } from '../data/countryCodes';
+import { PhoneInput } from './PhoneInput';
 
 /** Section contact identique au legacy : #contact + .contact-grid + .contact-info + .contact-form-wrap. */
 export function ContactSection() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
+  const [telCode, setTelCode] = useState<string>(DEFAULT_COUNTRY_CODE);
+  const [telNumber, setTelNumber] = useState('');
   const [sujet, setSujet] = useState('');
   const [message, setMessage] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -14,10 +18,12 @@ export function ContactSection() {
     e.preventDefault();
     setState('loading'); setErr('');
     try {
-      const r = await submitContact({ nom, email, sujet, message });
+      const tel = telNumber.trim() ? `${telCode} ${telNumber.trim()}` : undefined;
+      const r = await submitContact({ nom, email, tel, sujet, message });
       if (!r.success) throw new Error(r.message ?? 'Erreur');
       setState('success');
-      setNom(''); setEmail(''); setSujet(''); setMessage('');
+      setNom(''); setEmail(''); setTelNumber(''); setTelCode(DEFAULT_COUNTRY_CODE);
+      setSujet(''); setMessage('');
     } catch (e) { setErr((e as Error).message); setState('error'); }
   };
 
@@ -82,6 +88,16 @@ export function ContactSection() {
                   <div className="form-group">
                     <label>E-mail *</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@example.com" required />
+                  </div>
+                  <div className="form-group full">
+                    <label>Téléphone</label>
+                    <PhoneInput
+                      code={telCode}
+                      number={telNumber}
+                      onCodeChange={setTelCode}
+                      onNumberChange={setTelNumber}
+                      variant="classic"
+                    />
                   </div>
                   <div className="form-group full">
                     <label>Sujet</label>
